@@ -35,9 +35,9 @@ variable "availability_zone" {
 }
 
 variable "instance_type" {
-  description = "EC2インスタンスタイプ（Free Tier: t2.micro）"
+  description = "EC2インスタンスタイプ（Free Tier: t3.micro）"
   type        = string
-  default     = "t2.micro"
+  default     = "t3.micro"
 }
 
 variable "key_name" {
