@@ -258,3 +258,50 @@ fixed 環境で同じ Logs Insights クエリを実行し、インバウンド�
 - この環境は**学習目的**のため NACL で全拒否しており、EC2 から外部への通信も制限される
 - broken と fixed は同時にデプロイしないこと（IAM ロール名・NLB 名が変わるが CloudWatch Log Group 名が重複する）
 - NLB は Free Tier 対象外のため、**検証後は必ず `terraform destroy` で削除**すること
+
+---
+
+## 実際の検証で発見した追加ポイント
+
+### 1. NLB Client IP Preservation の影響
+
+- NLB はデフォルトで **Client IP Preservation がオン**
+- オンの場合、クライアントの実 IP がそのまま EC2 に届く
+- 「EC2 直接アクセスは成功するが NLB 経由でタイムアウトする」場合はこの設定を確認すること
+- 確認場所：**ターゲットグループ → 属性 → クライアント IP アドレスの保持**
+
+### 2. VPC Flow Logs のログストリームが 2 つある理由
+
+Flow Logs を確認するとログストリームが複数存在する。
+
+| ログストリーム | 対象 ENI | 内容 |
+|--------------|----------|------|
+| `eni-xxxxxxxx` (EC2) | EC2 インスタンスの ENI | インスタンスへ届いた通信のログ |
+| `eni-yyyyyyyy` (NLB) | NLB ノードの ENI | ロードバランサー自体の通信ログ |
+
+**REJECT ログは EC2 側の ENI で確認する。** NLB 側の ENI ではなく、EC2 の ENI のログストリームを選ぶこと。
+
+### 3. 設定変更の反映時間
+
+| 設定 | 反映時間 |
+|------|----------|
+| Network ACL ルール | **即時反映** |
+| ターゲットグループ属性（Client IP Preservation 等） | 1〜2 分程度かかる場合あり |
+
+変更後すぐ curl でテストして「まだタイムアウトする」と焦らないこと。
+
+### 4. トラブルシューティング手順
+
+```
+Step 1: EC2 に直接 curl（EC2 のパブリック IP を使用）
+        ↓ 成功 → EC2 自体は正常。NLB または NACL の問題
+        ↓ 失敗 → SG またはアプリケーションの問題
+
+Step 2: NLB 経由で curl（NLB の DNS 名を使用）
+        ↓ タイムアウト → 以下を確認
+           ① NACL アウトバウンドにエフェメラルポート (1024-65535) があるか
+           ② Client IP Preservation が有効な場合、ループバック通信になっていないか
+
+Step 3: VPC Flow Logs で REJECT を確認
+        → EC2 の ENI のログストリームを選び、dstPort が 1024-65535 の REJECT を探す
+```
