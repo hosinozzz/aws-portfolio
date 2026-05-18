@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(terraform fmt *)",
+      "Bash(Get-ChildItem \"C:\\\\clude-code\\\\aws-portfolio\\\\environments\\\\04_ssm-session-manager\")",
+      "Bash(Select-Object Name, Length)"
+    ]
+  }
+}

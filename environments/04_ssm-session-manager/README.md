@@ -205,3 +205,35 @@ terraform destroy
 - VPCエンドポイント（Interface型）は **Free Tier対象外** のため、動作確認後は速やかに `terraform destroy` を実行してください
 - `terraform.tfvars` の `aws_account_id` を自身のAWSアカウントIDに変更してから実行してください
 - S3バケット名はグローバルで一意にする必要があるため、アカウントIDをサフィックスに使用しています
+
+---
+
+## 検証状況・未解決事項
+
+### 構築済み ✅
+
+- VPC + プライベートサブネット
+- EC2 x2（production / staging タグ）
+- VPCエンドポイント x4（ssm / ssmmessages / ec2messages / s3）
+- IAM Role + タグ条件付き Policy
+- S3セッションログバケット
+
+### 未確認 ⚠️
+
+- SSM Session Manager経由でのEC2接続
+- マネージドノードへの登録
+
+### 詰まっている箇所
+
+全設定が正しいにもかかわらず、マネージドノードに登録されない（管理対象: False のまま）。
+
+考えられる原因：
+
+1. SSM Agentの初期化に想定以上の時間が必要
+2. VPCエンドポイント経由のDNS解決の問題
+3. 追加調査が必要
+
+### 次のステップ
+
+- EC2にSession Managerで接続し、SSM Agentのステータスを直接確認
+- CloudWatch Logsでエージェントログを確認

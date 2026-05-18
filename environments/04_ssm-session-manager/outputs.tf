@@ -37,3 +37,8 @@ output "session_manager_connect_staging" {
   description = "ステージングEC2へのSession Manager接続コマンド（production-access-groupのユーザーは拒否される）"
   value       = "aws ssm start-session --target ${aws_instance.staging.id} --region ${var.aws_region}"
 }
+
+output "jump_server_public_ip" {
+  description = "デバッグ用ジャンプサーバーのパブリックIP"
+  value       = aws_instance.jump.public_ip
+}
